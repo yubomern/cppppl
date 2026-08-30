@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Inscription — CRUD App</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <h2>📝 Créer un compte</h2>
+        <div id="alert" class="alert alert-error"></div>
+        <div id="success" class="alert alert-success"></div>
+        <form id="registerForm">
+            <div class="field">
+                <label for="username">Nom d'utilisateur</label>
+                <input type="text" id="username" autocomplete="username" required>
+            </div>
+            <div class="field">
+                <label for="password">Mot de passe (min. 4 caractères)</label>
+                <input type="password" id="password" autocomplete="new-password" minlength="4" required>
+            </div>
+            <button type="submit" class="btn btn-success">Créer le compte</button>
+        </form>
+        <div class="auth-switch">
+            Déjà inscrit ? <a href="/login.html">Se connecter</a>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const alertBox = document.getElementById('alert');
+    const successBox = document.getElementById('success');
+    alertBox.style.display = 'none';
+    successBox.style.display = 'none';
+
+    try {
+        const res = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            alertBox.textContent = data.error || "Échec de l'inscription";
+            alertBox.style.display = 'block';
+            return;
+        }
+        successBox.textContent = 'Compte créé ! Redirection vers la connexion...';
+        successBox.style.display = 'block';
+        setTimeout(() => { window.location.href = '/login.html'; }, 1200);
+    } catch (err) {
+        alertBox.textContent = 'Erreur réseau : ' + err.message;
+        alertBox.style.display = 'block';
+    }
+});
+</script>
+</body>
+</html>

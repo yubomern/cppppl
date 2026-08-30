@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Connexion — CRUD App</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <h2>🔐 Connexion</h2>
+        <div id="alert" class="alert alert-error"></div>
+        <form id="loginForm">
+            <div class="field">
+                <label for="username">Nom d'utilisateur</label>
+                <input type="text" id="username" autocomplete="username" required>
+            </div>
+            <div class="field">
+                <label for="password">Mot de passe</label>
+                <input type="password" id="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Se connecter</button>
+        </form>
+        <div class="auth-switch">
+            Pas encore de compte ? <a href="/register.html">Créer un compte</a>
+        </div>
+    </div>
+</div>
+<script src="/js/auth.js"></script>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const alertBox = document.getElementById('alert');
+    alertBox.style.display = 'none';
+
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            alertBox.textContent = data.error || 'Échec de connexion';
+            alertBox.style.display = 'block';
+            return;
+        }
+        window.location.href = '/index.html';
+    } catch (err) {
+        alertBox.textContent = 'Erreur réseau : ' + err.message;
+        alertBox.style.display = 'block';
+    }
+});
+</script>
+</body>
+</html>
