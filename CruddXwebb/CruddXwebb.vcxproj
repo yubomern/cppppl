@@ -134,6 +134,7 @@
     <ClInclude Include="json_store.h" />
     <ClInclude Include="session_manager.h" />
     <ClInclude Include="sha256.h" />
+    <ClInclude Include="ThreadPool.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

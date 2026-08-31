@@ -21,6 +21,8 @@
 #include <boost/beast.hpp>
 #include <nlohmann/json.hpp>
 
+#include "ThreadPool.h"
+
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -30,7 +32,13 @@
 #include "json_store.h"
 #include "session_manager.h"
 #include "sha256.h"
-
+#ifdef _WIN32
+#define POPEN  _popen
+#define PCLOSE _pclose
+#else
+#define POPEN  popen
+#define PCLOSE pclose
+#endif
 namespace asio = boost::asio;
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -383,7 +391,146 @@ void handle_connection(tcp::socket socket) {
     }
 }
 
+std::mutex loggermtx;
+
+class Logger {
+
+
+
+private  :
+
+    Logger() {}
+public  :
+
+    Logger(const Logger&) = delete;
+    Logger& operator =  (const Logger&) = delete;
+    static Logger& getInstance() {
+        std::lock_guard<std::mutex> lk(loggermtx);
+        static Logger ins;
+        return ins;
+    }
+    void info(const std::string& message) {
+        std::cout << "[INFO] " << message << std::endl;
+    }
+};
+#include <memory>
+
+class Crash {
+
+public :
+
+    virtual void execute() = 0;
+    virtual ~Crash() = default;
+
+};
+
+class SegfaultCrash :public Crash {
+
+public  :
+
+    void execute() override {
+        std::cout << "Segmentation fault\n";
+    }
+};
+class DeadlockCrash : public Crash {
+public:
+    void execute() override {
+        std::cout << "Deadlock\n";
+    }
+};
+
+
+
+class CrashFactory {
+
+public  :
+    static std::unique_ptr<Crash> create(const std::string& type) {
+
+        if (type == "segfault")
+            return std::make_unique<SegfaultCrash>();
+
+        if (type == "deadlock")
+            return std::make_unique<DeadlockCrash>();
+
+        return nullptr;
+    }
+};
+
+
+
+
+void readLargeFile(const std::string& fileName)
+{
+
+    std::ifstream file_(fileName);
+    if (!file_.is_open()) {
+        std::cerr << "errror open file  " << std::endl; 
+        return;
+    }
+
+    std::string line;
+
+    while(std::getline(file_, line)) {
+        std::cout << line << std::endl;
+
+    }
+    file_.close();
+}
+
+#include <vector>
+#include <array>
+std::atomic<int > fileLarger = 0;
+int readChunk(const std::string& fileName) {
+    std::ifstream file_(fileName); 
+    const size_t BUFFER_SIZE = 1024 * 1024; // 1MO  
+
+    std::vector<char> buffer(BUFFER_SIZE);
+
+    while (file_) {
+        fileLarger++;
+        file_.read(buffer.data(), buffer.size());
+        std::streamsize size_ = file_.gcount();
+        if (size_ > 0) {
+            std::cout << "Read "
+                << size_
+                << " bytes\n";
+        }
+    }
+}
+
+
+std::string javaExceute(const std::string& JavaPath, int len_)
+{
+    std::array<char, 1024> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&_pclose)>  pipe(_popen(JavaPath.c_str(), "r"), &_pclose );
+    if (!pipe) {
+        std::cerr << "popen failed\n";
+        return "";
+    }
+    while (fgets(buffer.data(),
+        buffer.size(),
+        pipe.get())) {
+
+        result += buffer.data();
+    }
+    return result;
+}
 int main(int argc, char* argv[]) {
+    ThreadPool<int> pool(4);
+
+    pool.enqueue([] {
+        std::cout << "Task 1\n";
+        Logger::getInstance().info("Thread Pool started");
+
+        Logger::getInstance().info("Failed to open core file");
+        });
+
+    pool.enqueue([] {
+        std::cout << "Task 2\n";
+        auto crash = CrashFactory::create("segfault");
+        if (crash)crash->execute();
+        });
     try {
         unsigned short port = 8080;
         if (argc > 1) port = static_cast<unsigned short>(std::atoi(argv[1]));
