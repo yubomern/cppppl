@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Port série</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <span class="brand">⚙ Console</span>
+    <a href="/dashboard">Accueil</a>
+    <a href="/serial">Port série</a>
+    <a href="/network">Réseau / WiFi</a>
+    <a href="/telnet">Telnet</a>
+    <a href="/ftp">FTP</a>
+    <a href="/blog">Blog</a>
+    <a href="/files">Fichiers</a>
+    <a href="/chat">Chat</a>
+    <span class="spacer"></span>
+    <a href="/logout">Déconnexion</a>
+  </nav>
+  <div class="container">
+    <h1>Port série (jusqu'à 20 ports USB)</h1>
+
+    <div class="card">
+      <h3>Ports détectés</h3>
+      <button id="scanBtn">🔍 Scanner les ports</button>
+      <table style="margin-top:14px">
+        <thead><tr><th>Port</th><th>USB</th><th>Action</th></tr></thead>
+        <tbody id="portsTable"><tr><td colspan="3" style="color:var(--muted)">Aucun scan effectué</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Connexion</h3>
+        <div id="connErr" class="error-msg" style="display:none"></div>
+        <label>Port choisi</label>
+        <input type="text" id="portName" placeholder="/dev/ttyUSB0">
+        <label>Vitesse (baud)</label>
+        <input type="number" id="baud" value="115200">
+        <label>Prompt attendu</label>
+        <input type="text" id="prompt" value="TT>" placeholder="TT> ou autre">
+        <button id="connectBtn">Connecter</button>
+        <button id="disconnectBtn" class="secondary">Déconnecter</button>
+        <p style="color:var(--muted);font-size:13px" id="logInfo"></p>
+      </div>
+
+      <div class="card">
+        <h3>Envoyer une commande</h3>
+        <label>Port cible</label>
+        <input type="text" id="cmdPort" placeholder="/dev/ttyUSB0">
+        <label>Commande</label>
+        <input type="text" id="cmdText" placeholder="ex: status">
+        <button id="sendBtn">Envoyer</button>
+        <h4 style="margin-top:16px">Réponse</h4>
+        <pre class="console" id="output"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    const portsTable = document.getElementById("portsTable");
+    const output = document.getElementById("output");
+    const connErr = document.getElementById("connErr");
+    const logInfo = document.getElementById("logInfo");
+
+    document.getElementById("scanBtn").addEventListener("click", async () => {
+      portsTable.innerHTML = `<tr><td colspan="3">Scan en cours...</td></tr>`;
+      try {
+        const data = await apiGet("/api/serial/scan");
+        if (!data.ports || data.ports.length === 0) {
+          portsTable.innerHTML = `<tr><td colspan="3" style="color:var(--muted)">Aucun port détecté</td></tr>`;
+          return;
+        }
+        portsTable.innerHTML = data.ports.map(p => `
+          <tr>
+            <td>${p.name}</td>
+            <td>${p.is_usb ? '<span class="badge ok">USB</span>' : '<span class="badge">—</span>'}</td>
+            <td><button class="secondary" onclick="usePort('${p.name}')">Choisir</button></td>
+          </tr>
+        `).join("");
+      } catch (ex) {
+        portsTable.innerHTML = `<tr><td colspan="3" style="color:var(--danger)">${ex.message}</td></tr>`;
+      }
+    });
+
+    function usePort(name) {
+      document.getElementById("portName").value = name;
+      document.getElementById("cmdPort").value = name;
+    }
+
+    document.getElementById("connectBtn").addEventListener("click", async () => {
+      connErr.style.display = "none";
+      try {
+        const data = await apiPost("/api/serial/connect", {
+          port: document.getElementById("portName").value,
+          baud: parseInt(document.getElementById("baud").value || "115200", 10),
+          prompt: document.getElementById("prompt").value || "TT>",
+        });
+        logInfo.textContent = "Connecté. Fichier de log: " + data.log_file;
+        document.getElementById("cmdPort").value = data.port;
+      } catch (ex) {
+        showError(connErr, ex);
+      }
+    });
+
+    document.getElementById("disconnectBtn").addEventListener("click", async () => {
+      const port = document.getElementById("portName").value;
+      try {
+        await apiPost(`/api/serial/disconnect/${encodeURIComponent(port)}`);
+        logInfo.textContent = "Déconnecté.";
+      } catch (ex) {
+        showError(connErr, ex);
+      }
+    });
+
+    document.getElementById("sendBtn").addEventListener("click", async () => {
+      try {
+        const data = await apiPost("/api/serial/command", {
+          port: document.getElementById("cmdPort").value,
+          command: document.getElementById("cmdText").value,
+        });
+        output.textContent += `> ${document.getElementById("cmdText").value}\n${data.response}\n`;
+        output.scrollTop = output.scrollHeight;
+      } catch (ex) {
+        output.textContent += `Erreur: ${ex.message}\n`;
+      }
+    });
+  </script>
+</body>
+</html>

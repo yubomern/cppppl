@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Connexion</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-box card">
+      <h1>Connexion</h1>
+      <div id="err" class="error-msg" style="display:none"></div>
+      <form id="loginForm">
+        <input type="text" id="username" placeholder="Nom d'utilisateur" required>
+        <input type="password" id="password" placeholder="Mot de passe" required>
+        <button type="submit">Se connecter</button>
+      </form>
+      <p style="margin-top:16px;color:var(--muted)">
+        Pas de compte ? <a href="/register">Créer un compte</a>
+      </p>
+    </div>
+  </div>
+  <script src="/static/js/app.js"></script>
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const err = document.getElementById("err");
+      err.style.display = "none";
+      try {
+        const data = await apiPost("/api/login", {
+          username: document.getElementById("username").value,
+          password: document.getElementById("password").value,
+        });
+        window.location.href = data.redirect || "/dashboard";
+      } catch (ex) {
+        showError(err, ex);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Tableau de bord</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <span class="brand">⚙ Console</span>
+    <a href="/dashboard">Accueil</a>
+    <a href="/serial">Port série</a>
+    <a href="/network">Réseau / WiFi</a>
+    <a href="/telnet">Telnet</a>
+    <a href="/ftp">FTP</a>
+    <a href="/blog">Blog</a>
+    <a href="/files">Fichiers</a>
+    <a href="/chat">Chat</a>
+    <span class="spacer"></span>
+    <a href="/logout">Déconnexion</a>
+  </nav>
+  <div class="container">
+    <h1>Tableau de bord</h1>
+    <div class="grid-3">
+      <div class="card">
+        <h3>🔌 Port série</h3>
+        <p style="color:var(--muted)">Scanner jusqu'à 20 ports USB, se connecter, envoyer des commandes et lire le prompt (ex. <code>TT&gt;</code>).</p>
+        <a href="/serial"><button>Ouvrir</button></a>
+      </div>
+      <div class="card">
+        <h3>🌐 Réseau / WiFi</h3>
+        <p style="color:var(--muted)">Voir <code>ip a</code>, les interfaces eth0/eth1, et le SSID WiFi courant.</p>
+        <a href="/network"><button>Ouvrir</button></a>
+      </div>
+      <div class="card">
+        <h3>💻 Telnet</h3>
+        <p style="color:var(--muted)">Se connecter à un équipement en Telnet et envoyer des commandes.</p>
+        <a href="/telnet"><button>Ouvrir</button></a>
+      </div>
+      <div class="card">
+        <h3>📁 FTP</h3>
+        <p style="color:var(--muted)">Se connecter à un serveur FTP, lister, envoyer et récupérer des fichiers.</p>
+        <a href="/ftp"><button>Ouvrir</button></a>
+      </div>
+      <div class="card">
+        <h3>📝 Blog</h3>
+        <p style="color:var(--muted)">Rédiger des articles (titre + contenu riche via CKEditor, upload d'images).</p>
+        <a href="/blog"><button>Ouvrir</button></a>
+      </div>
+      <div class="card">
+        <h3>💬 Chat</h3>
+        <p style="color:var(--muted)">Discussion en temps réel via WebSocket (gorilla/websocket).</p>
+        <a href="/chat"><button>Ouvrir</button></a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

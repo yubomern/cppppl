@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>FTP</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <span class="brand">⚙ Console</span>
+    <a href="/dashboard">Accueil</a>
+    <a href="/serial">Port série</a>
+    <a href="/network">Réseau / WiFi</a>
+    <a href="/telnet">Telnet</a>
+    <a href="/ftp">FTP</a>
+    <a href="/blog">Blog</a>
+    <a href="/files">Fichiers</a>
+    <a href="/chat">Chat</a>
+    <span class="spacer"></span>
+    <a href="/logout">Déconnexion</a>
+  </nav>
+  <div class="container">
+    <h1>FTP</h1>
+
+    <div class="card">
+      <h3>Connexion</h3>
+      <div id="err" class="error-msg" style="display:none"></div>
+      <div class="grid-3">
+        <input type="text" id="host" placeholder="Hôte (ex: 192.168.1.5)">
+        <input type="number" id="port" placeholder="Port" value="21">
+        <input type="text" id="username" placeholder="Utilisateur (anonymous par défaut)">
+      </div>
+      <input type="password" id="password" placeholder="Mot de passe">
+      <button id="connectBtn">Connecter</button>
+      <p style="color:var(--muted);font-size:13px" id="info"></p>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Navigation</h3>
+        <input type="text" id="path" placeholder="." value=".">
+        <button id="listBtn">Lister</button>
+        <table style="margin-top:10px">
+          <thead><tr><th>Nom</th><th>Type</th><th>Taille</th></tr></thead>
+          <tbody id="listTable"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Envoyer un fichier</h3>
+        <input type="file" id="uploadFile">
+        <input type="text" id="remotePath" placeholder="Nom distant (optionnel)">
+        <button id="uploadBtn">Envoyer</button>
+
+        <h3 style="margin-top:20px">Télécharger un fichier</h3>
+        <input type="text" id="downloadPath" placeholder="chemin/fichier.txt">
+        <button id="downloadBtn" class="secondary">Télécharger</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    let session = null;
+    const err = document.getElementById("err");
+
+    document.getElementById("connectBtn").addEventListener("click", async () => {
+      err.style.display = "none";
+      try {
+        const data = await apiPost("/api/ftp/connect", {
+          host: document.getElementById("host").value,
+          port: parseInt(document.getElementById("port").value || "21", 10),
+          username: document.getElementById("username").value,
+          password: document.getElementById("password").value,
+        });
+        session = data.session;
+        document.getElementById("info").textContent = "Connecté (" + session + "). Log: " + data.log_file;
+      } catch (ex) { showError(err, ex); }
+    });
+
+    document.getElementById("listBtn").addEventListener("click", async () => {
+      if (!session) return;
+      const path = document.getElementById("path").value || ".";
+      const tbody = document.getElementById("listTable");
+      tbody.innerHTML = `<tr><td colspan="3">Chargement...</td></tr>`;
+      try {
+        const data = await apiGet(`/api/ftp/list?session=${encodeURIComponent(session)}&path=${encodeURIComponent(path)}`);
+        tbody.innerHTML = (data.entries || []).map(e => `
+          <tr><td>${e.name}</td><td>${e.type}</td><td>${e.size}</td></tr>
+        `).join("") || `<tr><td colspan="3" style="color:var(--muted)">Vide</td></tr>`;
+      } catch (ex) {
+        tbody.innerHTML = `<tr><td colspan="3" style="color:var(--danger)">${ex.message}</td></tr>`;
+      }
+    });
+
+    document.getElementById("uploadBtn").addEventListener("click", async () => {
+      if (!session) return;
+      const fileInput = document.getElementById("uploadFile");
+      if (!fileInput.files.length) return;
+      const fd = new FormData();
+      fd.append("session", session);
+      fd.append("remote_path", document.getElementById("remotePath").value);
+      fd.append("file", fileInput.files[0]);
+      try {
+        await apiUpload("/api/ftp/upload", fd);
+        alert("Fichier envoyé.");
+      } catch (ex) { alert("Erreur: " + ex.message); }
+    });
+
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      if (!session) return;
+      const path = document.getElementById("downloadPath").value;
+      window.location = `/api/ftp/download?session=${encodeURIComponent(session)}&path=${encodeURIComponent(path)}`;
+    });
+  </script>
+</body>
+</html>

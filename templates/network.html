@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Réseau</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <span class="brand">⚙ Console</span>
+    <a href="/dashboard">Accueil</a>
+    <a href="/serial">Port série</a>
+    <a href="/network">Réseau / WiFi</a>
+    <a href="/telnet">Telnet</a>
+    <a href="/ftp">FTP</a>
+    <a href="/blog">Blog</a>
+    <a href="/files">Fichiers</a>
+    <a href="/chat">Chat</a>
+    <span class="spacer"></span>
+    <a href="/logout">Déconnexion</a>
+  </nav>
+  <div class="container">
+    <h1>Réseau &amp; WiFi</h1>
+
+    <div class="card">
+      <h3>Interfaces (eth0, eth1, wlan0...)</h3>
+      <button id="refreshIfaces">Rafraîchir</button>
+      <table style="margin-top:14px">
+        <thead><tr><th>Nom</th><th>MAC</th><th>État</th><th>Adresses</th></tr></thead>
+        <tbody id="ifacesTable"></tbody>
+      </table>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3><code>ip a</code></h3>
+        <button id="ipaBtn">Exécuter</button>
+        <pre class="console" id="ipaOutput"></pre>
+      </div>
+      <div class="card">
+        <h3>Informations WiFi</h3>
+        <button id="wifiBtn">Récupérer</button>
+        <pre class="console" id="wifiOutput"></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Détail d'une interface précise</h3>
+      <input type="text" id="ifaceName" placeholder="eth0">
+      <button id="ifaceDetailBtn">Voir le détail</button>
+      <pre class="console" id="ifaceOutput"></pre>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    async function loadIfaces() {
+      const tbody = document.getElementById("ifacesTable");
+      tbody.innerHTML = `<tr><td colspan="4">Chargement...</td></tr>`;
+      try {
+        const data = await apiGet("/api/network/interfaces");
+        tbody.innerHTML = (data.interfaces || []).map(i => `
+          <tr>
+            <td>${i.name}</td>
+            <td>${i.mac || "—"}</td>
+            <td>${i.is_up ? '<span class="badge ok">UP</span>' : '<span class="badge">DOWN</span>'}</td>
+            <td>${(i.addresses || []).join(", ") || "—"}</td>
+          </tr>
+        `).join("");
+      } catch (ex) {
+        tbody.innerHTML = `<tr><td colspan="4" style="color:var(--danger)">${ex.message}</td></tr>`;
+      }
+    }
+    document.getElementById("refreshIfaces").addEventListener("click", loadIfaces);
+    loadIfaces();
+
+    document.getElementById("ipaBtn").addEventListener("click", async () => {
+      const out = document.getElementById("ipaOutput");
+      out.textContent = "Exécution...";
+      try {
+        const data = await apiGet("/api/network/ip-a");
+        out.textContent = data.output;
+      } catch (ex) { out.textContent = "Erreur: " + ex.message; }
+    });
+
+    document.getElementById("wifiBtn").addEventListener("click", async () => {
+      const out = document.getElementById("wifiOutput");
+      out.textContent = "Recherche...";
+      try {
+        const data = await apiGet("/api/network/wifi");
+        out.textContent = JSON.stringify(data, null, 2);
+      } catch (ex) { out.textContent = "Erreur: " + ex.message; }
+    });
+
+    document.getElementById("ifaceDetailBtn").addEventListener("click", async () => {
+      const name = document.getElementById("ifaceName").value || "eth0";
+      const out = document.getElementById("ifaceOutput");
+      out.textContent = "Chargement...";
+      try {
+        const data = await apiGet(`/api/network/interface/${encodeURIComponent(name)}`);
+        out.textContent = data.output;
+      } catch (ex) { out.textContent = "Erreur: " + ex.message; }
+    });
+  </script>
+</body>
+</html>

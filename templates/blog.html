@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Blog</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <span class="brand">⚙ Console</span>
+    <a href="/dashboard">Accueil</a>
+    <a href="/serial">Port série</a>
+    <a href="/network">Réseau / WiFi</a>
+    <a href="/telnet">Telnet</a>
+    <a href="/ftp">FTP</a>
+    <a href="/blog">Blog</a>
+    <a href="/files">Fichiers</a>
+    <a href="/chat">Chat</a>
+    <span class="spacer"></span>
+    <a href="/logout">Déconnexion</a>
+  </nav>
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h1>Blog</h1>
+      <a href="/blog/new"><button>+ Nouvel article</button></a>
+    </div>
+    <div id="posts"></div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    async function loadPosts() {
+      const container = document.getElementById("posts");
+      container.innerHTML = "Chargement...";
+      try {
+        const data = await apiGet("/api/posts");
+        if (!data.posts || data.posts.length === 0) {
+          container.innerHTML = `<p style="color:var(--muted)">Aucun article pour l'instant.</p>`;
+          return;
+        }
+        container.innerHTML = data.posts.map(p => `
+          <div class="card">
+            <h2>${p.Title}</h2>
+            <p style="color:var(--muted);font-size:13px">Par ${p.Author} — ${fmtDate(p.CreatedAt)}</p>
+            <div>${p.Body}</div>
+            <div style="margin-top:12px">
+              <a href="/blog/${p.ID}/edit"><button class="secondary">Modifier</button></a>
+              <button class="danger" onclick="deletePost(${p.ID})">Supprimer</button>
+            </div>
+          </div>
+        `).join("");
+      } catch (ex) {
+        container.innerHTML = `<p style="color:var(--danger)">${ex.message}</p>`;
+      }
+    }
+
+    async function deletePost(id) {
+      if (!confirm("Supprimer cet article ?")) return;
+      try {
+        await apiDelete(`/api/posts/${id}`);
+        loadPosts();
+      } catch (ex) { alert("Erreur: " + ex.message); }
+    }
+
+    loadPosts();
+  </script>
+</body>
+</html>

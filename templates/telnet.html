@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Telnet</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <span class="brand">⚙ Console</span>
+    <a href="/dashboard">Accueil</a>
+    <a href="/serial">Port série</a>
+    <a href="/network">Réseau / WiFi</a>
+    <a href="/telnet">Telnet</a>
+    <a href="/ftp">FTP</a>
+    <a href="/blog">Blog</a>
+    <a href="/files">Fichiers</a>
+    <a href="/chat">Chat</a>
+    <span class="spacer"></span>
+    <a href="/logout">Déconnexion</a>
+  </nav>
+  <div class="container">
+    <h1>Telnet</h1>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Connexion</h3>
+        <div id="err" class="error-msg" style="display:none"></div>
+        <label>Hôte</label>
+        <input type="text" id="host" placeholder="192.168.1.10">
+        <label>Port</label>
+        <input type="number" id="port" value="23">
+        <label>Prompt attendu</label>
+        <input type="text" id="prompt" value="TT>">
+        <button id="connectBtn">Connecter</button>
+        <p style="color:var(--muted);font-size:13px" id="info"></p>
+      </div>
+      <div class="card">
+        <h3>Envoyer une commande</h3>
+        <input type="text" id="cmd" placeholder="commande">
+        <button id="sendBtn">Envoyer</button>
+        <button id="closeBtn" class="secondary">Fermer session</button>
+        <h4 style="margin-top:16px">Console</h4>
+        <pre class="console" id="output"></pre>
+      </div>
+    </div>
+  </div>
+  <script src="/static/js/app.js"></script>
+  <script>
+    let currentSession = null;
+    const err = document.getElementById("err");
+    const output = document.getElementById("output");
+
+    document.getElementById("connectBtn").addEventListener("click", async () => {
+      err.style.display = "none";
+      try {
+        const data = await apiPost("/api/telnet/connect", {
+          host: document.getElementById("host").value,
+          port: parseInt(document.getElementById("port").value || "23", 10),
+          prompt: document.getElementById("prompt").value || "TT>",
+        });
+        currentSession = data.session;
+        document.getElementById("info").textContent = "Connecté (" + currentSession + "). Log: " + data.log_file;
+      } catch (ex) { showError(err, ex); }
+    });
+
+    document.getElementById("sendBtn").addEventListener("click", async () => {
+      if (!currentSession) { output.textContent += "Connectez-vous d'abord.\n"; return; }
+      const cmd = document.getElementById("cmd").value;
+      try {
+        const data = await apiPost("/api/telnet/command", { session: currentSession, command: cmd });
+        output.textContent += `> ${cmd}\n${data.response}\n`;
+        output.scrollTop = output.scrollHeight;
+      } catch (ex) { output.textContent += "Erreur: " + ex.message + "\n"; }
+    });
+
+    document.getElementById("closeBtn").addEventListener("click", async () => {
+      if (!currentSession) return;
+      try {
+        await apiPost(`/api/telnet/disconnect?session=${encodeURIComponent(currentSession)}`);
+        output.textContent += "Session fermée.\n";
+        currentSession = null;
+      } catch (ex) { output.textContent += "Erreur: " + ex.message + "\n"; }
+    });
+  </script>
+</body>
+</html>

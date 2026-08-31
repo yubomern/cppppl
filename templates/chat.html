@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <span class="brand">⚙ Console</span>
+    <a href="/dashboard">Accueil</a>
+    <a href="/serial">Port série</a>
+    <a href="/network">Réseau / WiFi</a>
+    <a href="/telnet">Telnet</a>
+    <a href="/ftp">FTP</a>
+    <a href="/blog">Blog</a>
+    <a href="/files">Fichiers</a>
+    <a href="/chat">Chat</a>
+    <span class="spacer"></span>
+    <a href="/logout">Déconnexion</a>
+  </nav>
+  <div class="container">
+    <h1>Chat (WebSocket)</h1>
+    <div class="card">
+      <label>Votre pseudo</label>
+      <input type="text" id="username" placeholder="pseudo" value="invite">
+      <button id="connectBtn">Rejoindre</button>
+
+      <div class="chat-box" id="chatBox" style="margin-top:16px"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="msgInput" placeholder="Votre message" style="margin-bottom:0" disabled>
+        <button id="sendBtn" disabled>Envoyer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    let ws = null;
+    const chatBox = document.getElementById("chatBox");
+
+    function appendMessage(m) {
+      const div = document.createElement("div");
+      div.className = "chat-line";
+      div.innerHTML = `<span class="u">${m.username}</span><span class="t">${fmtDate(m.created_at)}</span><div>${escapeHtml(m.message)}</div>`;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    async function loadHistory() {
+      try {
+        const data = await apiGet("/api/chat/history");
+        (data.messages || []).forEach(appendMessage);
+      } catch (ex) { console.error(ex); }
+    }
+    loadHistory();
+
+    document.getElementById("connectBtn").addEventListener("click", () => {
+      const username = document.getElementById("username").value || "invite";
+      const proto = window.location.protocol === "https:" ? "wss" : "ws";
+      ws = new WebSocket(`${proto}://${window.location.host}/ws/chat?username=${encodeURIComponent(username)}`);
+
+      ws.onmessage = (evt) => {
+        const m = JSON.parse(evt.data);
+        appendMessage(m);
+      };
+      ws.onopen = () => {
+        document.getElementById("msgInput").disabled = false;
+        document.getElementById("sendBtn").disabled = false;
+      };
+      ws.onclose = () => {
+        document.getElementById("msgInput").disabled = true;
+        document.getElementById("sendBtn").disabled = true;
+      };
+    });
+
+    document.getElementById("sendBtn").addEventListener("click", sendMsg);
+    document.getElementById("msgInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendMsg(); });
+
+    function sendMsg() {
+      const input = document.getElementById("msgInput");
+      if (!ws || !input.value) return;
+      ws.send(JSON.stringify({ message: input.value }));
+      input.value = "";
+    }
+  </script>
+</body>
+</html>

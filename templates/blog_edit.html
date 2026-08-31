@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Éditer l'article</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.ckeditor.com/ckeditor5/41.3.1/classic/ckeditor.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <span class="brand">⚙ Console</span>
+    <a href="/dashboard">Accueil</a>
+    <a href="/blog">Blog</a>
+    <span class="spacer"></span>
+    <a href="/logout">Déconnexion</a>
+  </nav>
+  <div class="container">
+    <h1>{{ if .PostID }}Modifier{{ else }}Nouvel{{ end }} article</h1>
+    <div id="err" class="error-msg" style="display:none"></div>
+    <div class="card">
+      <label>Titre</label>
+      <input type="text" id="title" placeholder="Titre de l'article">
+      <label>Contenu</label>
+      <div id="editor"></div>
+      <div style="margin-top:16px">
+        <button id="saveBtn">Enregistrer</button>
+        <a href="/blog"><button class="secondary" type="button">Annuler</button></a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    const postId = "{{ .PostID }}";
+    let editorInstance = null;
+
+    ClassicEditor
+      .create(document.querySelector("#editor"), {
+        simpleUpload: {
+          uploadUrl: "/api/upload/image",
+          withCredentials: true,
+        },
+      })
+      .then(editor => { editorInstance = editor; loadIfEditing(); })
+      .catch(err => console.error(err));
+
+    async function loadIfEditing() {
+      if (!postId) return;
+      try {
+        const data = await apiGet(`/api/posts/${postId}`);
+        document.getElementById("title").value = data.post.Title;
+        editorInstance.setData(data.post.Body);
+      } catch (ex) {
+        showError(document.getElementById("err"), ex);
+      }
+    }
+
+    document.getElementById("saveBtn").addEventListener("click", async () => {
+      const err = document.getElementById("err");
+      err.style.display = "none";
+      const payload = {
+        title: document.getElementById("title").value,
+        body: editorInstance.getData(),
+      };
+      try {
+        if (postId) {
+          await apiPut(`/api/posts/${postId}`, payload);
+        } else {
+          await apiPost("/api/posts", payload);
+        }
+        window.location.href = "/blog";
+      } catch (ex) {
+        showError(err, ex);
+      }
+    });
+  </script>
+</body>
+</html>

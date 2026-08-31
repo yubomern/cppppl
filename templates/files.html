@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Fichiers</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <span class="brand">⚙ Console</span>
+    <a href="/dashboard">Accueil</a>
+    <a href="/serial">Port série</a>
+    <a href="/network">Réseau / WiFi</a>
+    <a href="/telnet">Telnet</a>
+    <a href="/ftp">FTP</a>
+    <a href="/blog">Blog</a>
+    <a href="/files">Fichiers</a>
+    <a href="/chat">Chat</a>
+    <span class="spacer"></span>
+    <a href="/logout">Déconnexion</a>
+  </nav>
+  <div class="container">
+    <h1>Gestion de fichiers</h1>
+
+    <div class="card">
+      <h3>Envoyer un fichier</h3>
+      <input type="file" id="fileInput">
+      <button id="uploadBtn">Envoyer</button>
+    </div>
+
+    <div class="card">
+      <h3>Fichiers</h3>
+      <table>
+        <thead><tr><th>Nom</th><th>Taille</th><th>Date</th><th>Action</th></tr></thead>
+        <tbody id="filesTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    async function loadFiles() {
+      const tbody = document.getElementById("filesTable");
+      tbody.innerHTML = `<tr><td colspan="4">Chargement...</td></tr>`;
+      try {
+        const data = await apiGet("/api/files");
+        tbody.innerHTML = (data.files || []).map(f => `
+          <tr>
+            <td><a href="${f.Path}" target="_blank">${f.Filename}</a></td>
+            <td>${(f.Size / 1024).toFixed(1)} Ko</td>
+            <td>${fmtDate(f.CreatedAt)}</td>
+            <td><button class="danger" onclick="deleteFile(${f.ID})">Supprimer</button></td>
+          </tr>
+        `).join("") || `<tr><td colspan="4" style="color:var(--muted)">Aucun fichier</td></tr>`;
+      } catch (ex) {
+        tbody.innerHTML = `<tr><td colspan="4" style="color:var(--danger)">${ex.message}</td></tr>`;
+      }
+    }
+
+    document.getElementById("uploadBtn").addEventListener("click", async () => {
+      const input = document.getElementById("fileInput");
+      if (!input.files.length) return;
+      const fd = new FormData();
+      fd.append("file", input.files[0]);
+      try {
+        await apiUpload("/api/files/upload", fd);
+        input.value = "";
+        loadFiles();
+      } catch (ex) { alert("Erreur: " + ex.message); }
+    });
+
+    async function deleteFile(id) {
+      if (!confirm("Supprimer ce fichier ?")) return;
+      try {
+        await apiDelete(`/api/files/${id}`);
+        loadFiles();
+      } catch (ex) { alert("Erreur: " + ex.message); }
+    }
+
+    loadFiles();
+  </script>
+</body>
+</html>
