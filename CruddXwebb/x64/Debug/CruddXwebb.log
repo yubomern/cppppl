@@ -3,4 +3,5 @@
   - add -D_WIN32_WINNT=0x0601 to the compiler command line; or
   - add _WIN32_WINNT=0x0601 to your project's Preprocessor Definitions.
   Assuming _WIN32_WINNT=0x0601 (i.e. Windows 7 target).
+C:\Users\G702306\Desktop\cpppBoost\CruddXwebb\CruddXwebb\CruddXwebb.cpp(513,20): warning C4267: 'argument' : conversion de 'size_t' en 'int', perte possible de données
   CruddXwebb.vcxproj -> C:\Users\G702306\Desktop\cpppBoost\CruddXwebb\x64\Debug\CruddXwebb.exe

@@ -14,7 +14,7 @@ private  :
 
 
 	std::queue<T>  m_pool;
-	mutable std::mutex;
+	mutable std::mutex mtxxx;
 	std::condition_variable m_cv;
 
 
@@ -27,7 +27,7 @@ private  :
 
 
 
-
+    std::mutex m_mutex;
 
 
 

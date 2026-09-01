@@ -496,6 +496,7 @@ int readChunk(const std::string& fileName) {
                 << " bytes\n";
         }
     }
+    return 1;
 }
 
 
@@ -516,8 +517,20 @@ std::string javaExceute(const std::string& JavaPath, int len_)
     }
     return result;
 }
+
+#include "Include.h"
 int main(int argc, char* argv[]) {
     ThreadPool<int> pool(4);
+
+    ThreadSafePool poolv2(4);
+
+    auto f1 = poolv2.enqueue([] { std::cout << "Task 1\n"; });
+    auto f2 = poolv2.enqueue([](int x) { std::cout << "Task 2: " << x << "\n"; }, 42);
+
+    f1.get();
+    f2.get();
+
+    std::cout << "All tasks completed.\n";
 
     pool.enqueue([] {
         std::cout << "Task 1\n";

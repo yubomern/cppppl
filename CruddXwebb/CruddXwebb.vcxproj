@@ -131,6 +131,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Include.h" />
     <ClInclude Include="json_store.h" />
     <ClInclude Include="session_manager.h" />
     <ClInclude Include="sha256.h" />
